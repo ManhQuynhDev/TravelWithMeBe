@@ -13,7 +13,7 @@ import jakarta.annotation.PreDestroy;
 @org.springframework.context.annotation.Configuration
 public class SocketIOServerConfiguration {
     private static final String SOCKET_IO_HOST = "0.0.0.0";
-	private static final int SOCKET_IO_PORT = 1111;
+	private static final int SOCKET_IO_PORT = 9092;
 	
 	private SocketIOServer server;
 	

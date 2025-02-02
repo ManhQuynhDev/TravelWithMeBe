@@ -9,9 +9,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
-import com.quynhlm.dev.be.core.exception.MemberNotFoundException;
-import com.quynhlm.dev.be.core.exception.TravelPlanNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.enums.GroupRole;
@@ -59,7 +57,7 @@ public class TravelPlanService {
     private MemberRepository memberRepository;
 
     public Travel_Plan addTravelPlan(Travel_Plan travelPlan)
-            throws UserAccountNotFoundException, MemberNotFoundException, UnknownException, GroupNotFoundException {
+            throws UserAccountNotFoundException, UnknownException, NotFoundException {
 
         User foundUser = userRepository.getAnUser(travelPlan.getUser_id());
         if (foundUser == null) {
@@ -69,7 +67,7 @@ public class TravelPlanService {
 
         Group foundGroup = groupRepository.findGroupById(travelPlan.getGroup_id());
         if (foundGroup == null) {
-            throw new GroupNotFoundException(
+            throw new NotFoundException(
                     "Found group with " + travelPlan.getGroup_id() + " not found . Please try again !");
         }
 
@@ -86,7 +84,7 @@ public class TravelPlanService {
 
         Member foundUserJoin = memberRepository.findMemberByUserId(foundUser.getId(), foundGroup.getId());
         if (foundUserJoin == null) {
-            throw new MemberNotFoundException(
+            throw new NotFoundException(
                     "User with id " + foundUser.getId() + " not found in group , please try again");
         }
 
@@ -107,10 +105,10 @@ public class TravelPlanService {
         return saveTravelPlan;
     }
 
-    public void deleteTravelPlan(int id) throws TravelPlanNotFoundException {
+    public void deleteTravelPlan(int id) throws NotFoundException {
         Travel_Plan foundPlan = travelPlanRepository.getAnTravel_Plan(id);
         if (foundPlan == null) {
-            throw new TravelPlanNotFoundException(
+            throw new NotFoundException(
                     "Found travel by id " + id + " not found , please try again with other id");
         }
 
@@ -160,11 +158,11 @@ public class TravelPlanService {
     }
 
     public Page<PlanResponseDTO> getAllPlansWithGroupId(Integer groupId, int page, int size)
-            throws GroupNotFoundException {
+            throws NotFoundException {
 
         Group foundGroup = groupRepository.findGroupById(groupId);
         if (foundGroup == null) {
-            throw new GroupNotFoundException(
+            throw new NotFoundException(
                     "Found groupId by id " + groupId + " not found , please try again with other id");
         }
 

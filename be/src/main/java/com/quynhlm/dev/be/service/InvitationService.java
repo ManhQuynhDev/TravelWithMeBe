@@ -3,7 +3,7 @@ package com.quynhlm.dev.be.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.entity.Group;
 import com.quynhlm.dev.be.model.entity.Invitation;
@@ -28,7 +28,7 @@ public class InvitationService {
     private MemberService memberService;
 
     public void acceptInvitation(Integer user_id, Integer groupId)
-            throws GroupNotFoundException, UserAccountNotFoundException {
+            throws NotFoundException, UserAccountNotFoundException {
         User foundUser = userRepository.getAnUser(user_id);
         if (foundUser == null) {
             throw new UserAccountNotFoundException("found user with " + user_id + " not found please try again");
@@ -36,7 +36,7 @@ public class InvitationService {
 
         Group foundGroup = groupRepository.findGroupById(groupId);
         if (foundGroup == null) {
-            throw new GroupNotFoundException(
+            throw new NotFoundException(
                     "Found group with " + groupId + " not found , please try again");
         }
 

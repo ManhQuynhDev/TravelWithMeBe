@@ -13,11 +13,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
-import com.quynhlm.dev.be.core.exception.MemberNotFoundException;
+import com.quynhlm.dev.be.core.exception.BadResquestException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
-import com.quynhlm.dev.be.core.exception.UserWasAlreadyRequest;
 import com.quynhlm.dev.be.enums.Role;
 import com.quynhlm.dev.be.model.dto.responseDTO.GroupResponseDTO;
 import com.quynhlm.dev.be.model.dto.responseDTO.MemberJoinGroupResponseDTO;
@@ -54,11 +53,11 @@ public class MemberService {
     private TravelPlanService travelPlanService;
 
     public Member requestToJoinGroup(Member member)
-            throws GroupNotFoundException, MemberNotFoundException, UserAccountNotFoundException, UnknownException,
-            UserWasAlreadyRequest {
+            throws NotFoundException, UserAccountNotFoundException, UnknownException,
+            BadResquestException {
 
         if (!groupRepository.existsById(member.getGroupId())) {
-            throw new GroupNotFoundException("Group with ID " + member.getGroupId() + " not found.");
+            throw new NotFoundException("Group with ID " + member.getGroupId() + " not found.");
         }
 
         if (!userRepository.existsById(member.getUserId())) {
@@ -69,7 +68,7 @@ public class MemberService {
                 member.getUserId(), member.getGroupId(), Arrays.asList("PENDING", "APPROVED"));
 
         if (existingMember.isPresent()) {
-            throw new UserWasAlreadyRequest("User has already requested to join or is already a member.");
+            throw new BadResquestException("User has already requested to join or is already a member.");
         }
 
         member.setRequest_time(new Timestamp(System.currentTimeMillis()).toString());
@@ -84,12 +83,12 @@ public class MemberService {
         return saveMember;
     }
 
-    public void insertMember(Member member) throws UserAccountNotFoundException, GroupNotFoundException {
+    public void insertMember(Member member) throws UserAccountNotFoundException, NotFoundException {
 
         member.setJoin_time(new Timestamp(System.currentTimeMillis()).toString());
 
         if (!groupRepository.existsById(member.getGroupId())) {
-            throw new GroupNotFoundException("Group with ID " + member.getGroupId() + " not found.");
+            throw new NotFoundException("Group with ID " + member.getGroupId() + " not found.");
         }
 
         if (!userRepository.existsById(member.getUserId())) {
@@ -109,10 +108,10 @@ public class MemberService {
     }
 
     public Page<MemberResponseDTO> getRequestToJoinGroup(Integer groupId, String status, int page, int size)
-            throws GroupNotFoundException {
+            throws NotFoundException {
         Group foundGroup = groupRepository.findGroupById(groupId);
         if (foundGroup == null) {
-            throw new GroupNotFoundException("Found member with groupId " + groupId + " not found , please try again");
+            throw new NotFoundException("Found member with groupId " + groupId + " not found , please try again");
         }
         Pageable pageable = PageRequest.of(page, size);
 
@@ -133,12 +132,12 @@ public class MemberService {
     }
 
     public void setAdminGroup(Member member)
-            throws GroupNotFoundException, MemberNotFoundException, UserAccountNotFoundException, UnknownException {
+            throws NotFoundException, UserAccountNotFoundException, UnknownException {
 
         member.setJoin_time(new Timestamp(System.currentTimeMillis()).toString());
 
         if (!groupRepository.existsById(member.getGroupId())) {
-            throw new GroupNotFoundException("Group with ID " + member.getGroupId() + " not found.");
+            throw new NotFoundException("Group with ID " + member.getGroupId() + " not found.");
         }
 
         if (!userRepository.existsById(member.getUserId())) {
@@ -153,11 +152,11 @@ public class MemberService {
         }
     }
 
-    public void deleteMember(Integer memberId) throws MemberNotFoundException {
+    public void deleteMember(Integer memberId) throws NotFoundException {
         // Find the member by ID
         Member foundMember = memberRepository.findMemberById(memberId);
         if (foundMember == null) {
-            throw new MemberNotFoundException("Member with ID " + memberId + " not found, please try another ID.");
+            throw new NotFoundException("Member with ID " + memberId + " not found, please try another ID.");
         }
 
         if (foundMember.getRole().equals(Role.ADMIN.name().toString())) {

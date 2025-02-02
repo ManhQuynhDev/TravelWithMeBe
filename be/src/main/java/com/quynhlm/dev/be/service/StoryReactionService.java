@@ -5,7 +5,7 @@ import java.sql.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.StoryNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.entity.Story;
@@ -27,12 +27,12 @@ public class StoryReactionService {
     private UserRepository userRepository;
 
     public void addReaction(StoryReaction storyReaction)
-            throws StoryNotFoundException, UserAccountNotFoundException {
+            throws NotFoundException, UserAccountNotFoundException {
 
         Story foundStory = storyRepository.getAnStory(storyReaction.getStoryId());
 
         if (foundStory == null) {
-            throw new StoryNotFoundException(
+            throw new NotFoundException(
                     "Story find with id " + storyReaction.getStoryId() + " not found. Please try another!");
         }
 
@@ -47,12 +47,12 @@ public class StoryReactionService {
     }
 
     public void updateReaction(StoryReaction storyReaction)
-            throws StoryNotFoundException, UserAccountNotFoundException {
+            throws NotFoundException, UserAccountNotFoundException {
 
         Story foundStory = storyRepository.getAnStory(storyReaction.getStoryId());
 
         if (foundStory == null) {
-            throw new StoryNotFoundException(
+            throw new NotFoundException(
                     "Story find with id " + storyReaction.getStoryId() + " not found. Please try another!");
         }
 

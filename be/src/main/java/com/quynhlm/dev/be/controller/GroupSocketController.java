@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.model.dto.requestDTO.MessageRequestDTO;
 import com.quynhlm.dev.be.model.dto.requestDTO.MessageSeenDTO;
 import com.quynhlm.dev.be.model.dto.responseDTO.UserMessageGroupResponseDTO;
@@ -34,7 +34,6 @@ public class GroupSocketController {
 
     @Autowired
     private MessageStatusService messageStatusService;
-    
 
     private SocketIONamespace namespace;
 
@@ -78,7 +77,7 @@ public class GroupSocketController {
 
             if (foundGroup == null) {
                 client.disconnect();
-                throw new GroupNotFoundException("Room " + room + " not found");
+                throw new NotFoundException("Room " + room + " not found");
             }
 
             client.joinRoom(room);
@@ -117,7 +116,7 @@ public class GroupSocketController {
             e.printStackTrace();
         }
     };
-    
+
     public DataListener<MessageSeenDTO> onMessageSeen = (client, messageSeenDTO, ackRequest) -> {
         try {
             String room = messageSeenDTO.getRoomId();
@@ -136,7 +135,8 @@ public class GroupSocketController {
 
                 messageStatus.computeIfAbsent(room, k -> new HashMap<>()).put(viewerId, true);
 
-                this.namespace.getRoomOperations(room).sendEvent("user-seen", getUsersInRoom(room, senderId , messageId));
+                this.namespace.getRoomOperations(room).sendEvent("user-seen",
+                        getUsersInRoom(room, senderId, messageId));
                 System.out.println("User " + viewerId + " has seen the message in room: " + room);
             } else {
                 System.out.println("Room ID is invalid.");
@@ -148,7 +148,7 @@ public class GroupSocketController {
     };
 
     // Phương thức trả về danh sách người dùng đã xem tin nhắn trong phòng
-    public List<String> getUsersInRoom(String roomId, String senderId , String messageId) {
+    public List<String> getUsersInRoom(String roomId, String senderId, String messageId) {
         List<String> users = new ArrayList<>();
 
         if (messageStatus.containsKey(roomId)) {
@@ -169,7 +169,7 @@ public class GroupSocketController {
         for (String userId : users) {
             System.out.println("User seen" + userId);
             messageStatusService.changeStatusMessage(Integer.parseInt(userId), Integer.parseInt(messageId),
-            true);
+                    true);
         }
         return users;
     }

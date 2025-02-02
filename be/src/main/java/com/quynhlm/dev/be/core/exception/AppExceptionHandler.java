@@ -20,12 +20,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @ControllerAdvice
 public class AppExceptionHandler {
     @ExceptionHandler(value = { UserAccountExistingException.class, UserAccountNotFoundException.class,
-            LocationExistingException.class, StoryNotFoundException.class, PostNotFoundException.class,
-            ReViewNotFoundException.class, GroupExistingException.class, GroupNotFoundException.class,
-            MemberNotFoundException.class, CommentNotFoundException.class, TravelPlanNotFoundException.class,
-            ActivitiesExistingException.class, ActivitiesNotFoundException.class, ShareNotFoundException.class,
-            ReplyNotFoundException.class, ReportExistingException.class, TagNotFoundException.class,
-            LocationNotFoundException.class, NotificationNotFoundException.class, ReviewExitstingException.class,
+            AlreadyExistsException.class,
             AccountIsDisabledException.class, NotFoundException.class })
     public ResponseEntity<ResponseObject> handleCustomExceptions(RuntimeException ex, HttpServletRequest request) {
         ResponseObject response = new ResponseObject();
@@ -41,62 +36,8 @@ public class AppExceptionHandler {
             case "UserAccountNotFoundException":
                 errorCode = AppError.ErrorCode.ACCOUNT_NOT_FOUND;
                 break;
-            case "LocationExistingException":
-                errorCode = AppError.ErrorCode.LOCATION_EXIST;
-                break;
-            case "StoryNotFoundException":
-                errorCode = AppError.ErrorCode.STORY_NOT_FOUND;
-                break;
-            case "PostNotFoundException":
-                errorCode = AppError.ErrorCode.POST_NOT_FOUND;
-                break;
-            case "ReViewNotFoundException":
-                errorCode = AppError.ErrorCode.REVIEW_NOT_FOUND;
-                break;
-            case "GroupNotFoundException":
-                errorCode = AppError.ErrorCode.GROUP_NOT_FOUND;
-                break;
-            case "GroupExistingException":
-                errorCode = AppError.ErrorCode.GROUP_EXIST;
-                break;
-            case "MemberNotFoundException":
-                errorCode = AppError.ErrorCode.MEMBER_NOT_FOUND;
-                break;
-            case "CommentNotFoundException":
-                errorCode = AppError.ErrorCode.COMMENT_NOT_FOUND;
-                break;
-            case "TravelPlanNotFoundException":
-                errorCode = AppError.ErrorCode.TRAVEL_PLAN_NOT_FOUND;
-                break;
-            case "ActivitiesExistingException":
-                errorCode = AppError.ErrorCode.ACTIVITIES_EXIST;
-                break;
-            case "ActivitiesNotFoundException":
-                errorCode = AppError.ErrorCode.ACTIVITIES_NOT_FOUND;
-                break;
-            case "ShareNotFoundException":
-                errorCode = AppError.ErrorCode.SHARE_NOT_FOUND;
-                break;
-            case "ReplyNotFoundException":
-                errorCode = AppError.ErrorCode.REPLY_NOT_FOUND;
-                break;
-            case "ReportExistingException":
-                errorCode = AppError.ErrorCode.REPORT_EXIST;
-                break;
-            case "ReportNotFoundException":
-                errorCode = AppError.ErrorCode.REPORT_NOT_FOUND;
-                break;
-            case "TagNotFoundException":
-                errorCode = AppError.ErrorCode.REPORT_NOT_FOUND;
-                break;
-            case "NotificationNotFoundException":
-                errorCode = AppError.ErrorCode.NOTIFICATION_NOT_FOUND;
-                break;
-            case "LocationNotFoundException":
-                errorCode = AppError.ErrorCode.LOCATION_NOT_FOUND;
-                break;
-            case "ReviewExitstingException":
-                errorCode = AppError.ErrorCode.REVIEW_EXIST;
+            case "AlreadyExistsException":
+                errorCode = AppError.ErrorCode.ALREADY_EXITES;
                 break;
             case "AccountIsDisabledException":
                 errorCode = AppError.ErrorCode.ACCOUNT_DISABLED;
@@ -162,21 +103,12 @@ public class AppExceptionHandler {
         return new ResponseEntity<ResponseObject>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(value = { UserWasAlreadyRequest.class })
-    public ResponseEntity<?> alreadyRequest(Exception ex, HttpServletRequest request) {
-        ResponseObject response = new ResponseObject();
-        response.setStatus(false);
-        response.setMessage("User was request or already a member!.");
-        response.setError(new AppError(ErrorCode.USER_ALREADY, ex.getMessage()));
-        return new ResponseEntity<ResponseObject>(response, HttpStatus.OK);
-    }
-
     @ExceptionHandler(value = { BadResquestException.class })
     public ResponseEntity<?> badRequest(Exception ex, HttpServletRequest request) {
         ResponseObject response = new ResponseObject();
         response.setStatus(false);
         response.setMessage("Bad request exception!.");
-        response.setError(new AppError(ErrorCode.USER_ALREADY, ex.getMessage()));
+        response.setError(new AppError(ErrorCode.BAD_REQUEST, ex.getMessage()));
         return new ResponseEntity<ResponseObject>(response, HttpStatus.BAD_REQUEST);
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.LocationExistingException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.model.dto.responseDTO.LocationStatisticsDTO;
 import com.quynhlm.dev.be.model.entity.Location;
@@ -29,7 +29,7 @@ public class LocationService {
         return locationRepository.findAllLocation(pageable);
     }
 
-    public Location insertLocation(String locationText) throws LocationExistingException, UnknownException {
+    public Location insertLocation(String locationText) throws NotFoundException, UnknownException {
         Location location = new Location();
         location.setAddress(locationText);
         Location saveLocation = locationRepository.save(location);

@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.PostNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.dto.responseDTO.ReactionCountDTO;
@@ -36,12 +36,12 @@ public class PostReactionService {
     private UserRepository userRepository;
 
     public void addReaction(PostReaction postReaction)
-            throws PostNotFoundException, UserAccountNotFoundException, UnknownException {
+            throws NotFoundException, UserAccountNotFoundException, UnknownException {
 
         Post foundPost = postRepository.getAnPost(postReaction.getPostId());
 
         if (foundPost == null) {
-            throw new PostNotFoundException(
+            throw new NotFoundException(
                     "Post find with id " + postReaction.getPostId() + " not found. Please try another!");
         }
 
@@ -56,12 +56,12 @@ public class PostReactionService {
     }
 
     public void updateReaction(PostReaction postReaction)
-            throws PostNotFoundException, UserAccountNotFoundException, UnknownException {
+            throws NotFoundException, UserAccountNotFoundException, UnknownException {
 
         Post foundPost = postRepository.getAnPost(postReaction.getPostId());
 
         if (foundPost == null) {
-            throw new PostNotFoundException(
+            throw new NotFoundException(
                     "Post find with id " + postReaction.getPostId() + " not found. Please try another!");
         }
 
@@ -114,11 +114,11 @@ public class PostReactionService {
         });
     }
 
-     public ReactionCountDTO getReactionTypeCount(Integer post_id) throws PostNotFoundException {
+     public ReactionCountDTO getReactionTypeCount(Integer post_id) throws NotFoundException {
         List<Object[]> results = postReactionRepository.findTopReactions(post_id);
 
         if (results.isEmpty()) {
-            throw new PostNotFoundException(
+            throw new NotFoundException(
                     "Id " + post_id + " not found or invalid data. Please try another!");
         }
 

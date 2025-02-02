@@ -13,11 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
+import com.quynhlm.dev.be.core.exception.BadResquestException;
 import com.quynhlm.dev.be.core.exception.MethodNotValidException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
-import com.quynhlm.dev.be.core.exception.UserWasAlreadyRequest;
 import com.quynhlm.dev.be.enums.FriendRequest;
 import com.quynhlm.dev.be.model.dto.requestDTO.InviteRequestDTO;
 import com.quynhlm.dev.be.model.dto.responseDTO.UserDTO;
@@ -61,11 +61,11 @@ public class FriendShipService {
     private InvitationRepository invitationRepository;
 
     public Page<UserFriendResponseDTO> getAllListUserFriend(int user_id, int groupId, int page, int size)
-            throws GroupNotFoundException {
+            throws NotFoundException {
 
         Group foundGroup = groupRepository.findGroupById(groupId);
         if (foundGroup == null) {
-            throw new GroupNotFoundException("Found group with " + groupId + " not found , please try again");
+            throw new NotFoundException("Found group with " + groupId + " not found , please try again");
         }
 
         Pageable pageable = PageRequest.of(page, size);
@@ -90,10 +90,10 @@ public class FriendShipService {
         });
     }
 
-    public void inviteFriends(InviteRequestDTO invitation) throws GroupNotFoundException, UserAccountNotFoundException {
+    public void inviteFriends(InviteRequestDTO invitation) throws NotFoundException, UserAccountNotFoundException {
         Group foundGroup = groupRepository.findGroupById(invitation.getGroupId());
         if (foundGroup == null) {
-            throw new GroupNotFoundException(
+            throw new NotFoundException(
                     "Found group with " + invitation.getGroupId() + " not found , please try again");
         }
 
@@ -112,7 +112,7 @@ public class FriendShipService {
     }
 
     public void sendingRequestFriend(int userSendId, int userReceivedId)
-            throws UserAccountNotFoundException, UnknownException {
+            throws UserAccountNotFoundException, UnknownException, BadResquestException {
         User userSending = userRepository.getAnUser(userSendId);
         if (userSending == null) {
             throw new UserAccountNotFoundException(
@@ -129,7 +129,7 @@ public class FriendShipService {
                 userSendId, userReceivedId);
 
         if (foundFriendShip != null) {
-            throw new UserWasAlreadyRequest("Cannot send friend request because you are already friends.");
+            throw new BadResquestException("Cannot send friend request because you are already friends.");
         }
 
         FriendShip friendShip = new FriendShip();
@@ -275,7 +275,7 @@ public class FriendShipService {
     }
 
     public void acceptFriend(int userSendId, int userReceivedId, String action)
-            throws UserAccountNotFoundException, UnknownException, UserWasAlreadyRequest {
+            throws UserAccountNotFoundException, UnknownException, BadResquestException {
 
         User userSending = userRepository.getAnUser(userSendId);
         if (userSending == null) {
@@ -293,7 +293,7 @@ public class FriendShipService {
                 userReceivedId);
 
         if (foundFriendShip == null) {
-            throw new UserWasAlreadyRequest(
+            throw new BadResquestException(
                     "Transaction cannot be completed because userSendId and userReceivedId not status PENDING");
         }
 
@@ -307,7 +307,8 @@ public class FriendShipService {
         }
     }
 
-    public void cancelFriends(int userSendId, int userReceivedId) throws UserAccountNotFoundException {
+    public void cancelFriends(int userSendId, int userReceivedId)
+            throws UserAccountNotFoundException, BadResquestException {
 
         User userSending = userRepository.getAnUser(userSendId);
         if (userSending == null) {
@@ -325,7 +326,7 @@ public class FriendShipService {
                 userReceivedId);
 
         if (foundFriendShip == null) {
-            throw new UserWasAlreadyRequest(
+            throw new BadResquestException(
                     "Cannot complete transaction because there is no friendship between userSendId " + userSendId +
                             " and userReceivedId " + userReceivedId);
         }
@@ -352,7 +353,7 @@ public class FriendShipService {
                 userReceivedId);
 
         if (foundFriendShip == null) {
-            throw new UserWasAlreadyRequest(
+            throw new BadResquestException(
                     "Cannot complete transaction because there is no friendship between userSendId " + userSendId +
                             " and userReceivedId " + userReceivedId);
         }

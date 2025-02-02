@@ -1,7 +1,5 @@
 package com.quynhlm.dev.be.service;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.time.LocalDateTime;
@@ -18,7 +16,6 @@ import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,8 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -44,6 +39,7 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import com.quynhlm.dev.be.core.AppConstant;
 import com.quynhlm.dev.be.core.exception.AccountIsDisabledException;
 import com.quynhlm.dev.be.core.exception.BadResquestException;
 import com.quynhlm.dev.be.core.exception.MethodNotValidException;
@@ -80,13 +76,7 @@ public class UserService {
     private JavaMailSender mailSender;
 
     @Autowired
-    private AmazonS3 amazonS3;
-
-    @Autowired
     private InvitationRepository invitationRepository;
-
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
 
     private static final String SIGNER_KEY = "/q5Il7oI//Hiv4va97MQAtYOaktNo188-23WY12YVRCRGBEwYECRg0T6YcrEzYWb";
 
@@ -415,7 +405,7 @@ public class UserService {
     }
 
     public void changeProfile(Integer id, @Valid UpdateProfileDTO updateUser, MultipartFile imageFile)
-            throws UserAccountNotFoundException, UserAccountExistingException, UnknownException {
+            throws UserAccountNotFoundException, UserAccountExistingException, UnknownException, BadResquestException {
 
         try {
             User foundUser = userRepository.findOneById(id);
@@ -430,25 +420,14 @@ public class UserService {
             }
 
             if (imageFile != null && !imageFile.isEmpty()) {
-                String imageFileName = imageFile.getOriginalFilename();
-                long imageFileSize = imageFile.getSize();
                 String imageContentType = imageFile.getContentType();
 
                 if (!isValidFileType(imageContentType)) {
-                    throw new UnknownException("Invalid file type. Only image files are allowed.");
+                    throw new BadResquestException("Invalid file type. Only image files are allowed.");
                 }
 
-                try (InputStream mediaInputStream = imageFile.getInputStream()) {
-                    ObjectMetadata mediaMetadata = new ObjectMetadata();
-                    mediaMetadata.setContentLength(imageFileSize);
-                    mediaMetadata.setContentType(imageContentType);
-
-                    amazonS3.putObject(bucketName, imageFileName, mediaInputStream, mediaMetadata);
-
-                    String mediaUrl = String.format("https://travle-be.s3.ap-southeast-2.amazonaws.com/%s",
-                            imageFileName);
-                    foundUser.setAvatarUrl(mediaUrl);
-                }
+                String mediaUrl = AppConstant.uploadFile(imageFile);
+                foundUser.setAvatarUrl(mediaUrl);
             }
 
             if (updateUser.getBio() != null) {
@@ -467,8 +446,6 @@ public class UserService {
             if (saveUser.getId() == null) {
                 throw new UnknownException("Transaction cannot complete!");
             }
-        } catch (IOException e) {
-            throw new UnknownException("File handling error: " + e.getMessage());
         } catch (Exception e) {
             throw new UnknownException(e.getMessage());
         }
@@ -558,12 +535,14 @@ public class UserService {
     }
 
     @Transactional
-    public void createManager(User user) throws UserAccountExistingException, UnknownException, UserAccountNotFoundException {
+    public void createManager(User user)
+            throws UserAccountExistingException, UnknownException, UserAccountNotFoundException {
 
         User foundUser = userRepository.findUserByEmail(user.getEmail());
 
         if (foundUser != null) {
-            throw new UserAccountNotFoundException("Found user with " + foundUser.getEmail() + " not found , please try again");
+            throw new UserAccountNotFoundException(
+                    "Found user with " + foundUser.getEmail() + " not found , please try again");
         }
 
         user.setIsLocked(AccountStatus.OPEN.name());

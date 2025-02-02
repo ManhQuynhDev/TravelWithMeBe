@@ -174,4 +174,13 @@ public class PostController {
     public List<PostStatisticalDTO> getPostCreateCount(@PathVariable int year) {
         return postService.getPostCreateCount(year);
     }
+
+    @PutMapping("change_status/{id}")
+    public ResponseEntity<ResponseObject<?>> changeStatusPost(@PathVariable(value = "id") Integer postId) {
+        postService.changeStatusPost(postId);
+        ResponseObject<Void> result = new ResponseObject<>();
+        result.setMessage("Change status post successfully");
+        result.setStatus(true);
+        return new ResponseEntity<ResponseObject<?>>(result, HttpStatus.OK);
+    }
 }

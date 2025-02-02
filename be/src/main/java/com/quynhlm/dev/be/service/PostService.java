@@ -1,32 +1,22 @@
 package com.quynhlm.dev.be.service;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.imageio.ImageIO;
-
 import java.sql.Timestamp;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.quynhlm.dev.be.core.exception.LocationNotFoundException;
-import com.quynhlm.dev.be.core.exception.PostNotFoundException;
+import com.quynhlm.dev.be.core.AppConstant;
+import com.quynhlm.dev.be.core.exception.BadResquestException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.dto.requestDTO.PostRequestDTO;
@@ -51,21 +41,12 @@ import com.quynhlm.dev.be.repositories.ReviewRepository;
 import com.quynhlm.dev.be.repositories.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
-import net.coobird.thumbnailator.Thumbnails;
 
 import org.springframework.transaction.annotation.Transactional;
-
-import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
 public class PostService {
-
-    @Autowired
-    private AmazonS3 amazonS3;
-
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
 
     @Autowired
     private PostRepository postRepository;
@@ -130,7 +111,7 @@ public class PostService {
                         continue;
                     }
 
-                    String mediaUrl = uploadMediaToS3(file);
+                    String mediaUrl = AppConstant.uploadFile(file);
                     String mediaType = (mediaUrl != null && mediaUrl.matches(".*\\.(jpg|jpeg|png|gif|webp)$"))
                             ? "IMAGE"
                             : "VIDEO";
@@ -157,61 +138,19 @@ public class PostService {
             }
 
             return getAnPostReturnSave(savedPost.getId());
-        } catch (IOException e) {
-            throw new UnknownException("File handling error: " + e.getMessage());
         } catch (Exception e) {
             throw new UnknownException(e.getMessage());
-        }
-    }
-
-    private String uploadMediaToS3(MultipartFile file) throws IOException, UnknownException {
-        String fileName = file.getOriginalFilename();
-        String contentType = file.getContentType();
-
-        try (InputStream inputStream = file.getInputStream()) {
-            if (contentType.startsWith("image/")) {
-                BufferedImage originalImage = ImageIO.read(inputStream);
-
-                BufferedImage resizedImage = Thumbnails.of(originalImage)
-                        .scale(0.5)
-                        .outputQuality(0.1)
-                        .asBufferedImage();
-
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                ImageIO.write(resizedImage, "jpg", outputStream);
-                InputStream resizedInputStream = new ByteArrayInputStream(outputStream.toByteArray());
-
-                ObjectMetadata metadata = new ObjectMetadata();
-                metadata.setContentLength(outputStream.size());
-                metadata.setContentType(contentType);
-
-                amazonS3.putObject(bucketName, fileName, resizedInputStream, metadata);
-
-            } else if (contentType.startsWith("video/")) {
-
-                ObjectMetadata metadata = new ObjectMetadata();
-                metadata.setContentLength(file.getSize());
-                metadata.setContentType(contentType);
-
-                amazonS3.putObject(bucketName, fileName, inputStream, metadata);
-            }
-
-            String mediaUrl = String.format("https://travle-be.s3.ap-southeast-2.amazonaws.com/%s",
-                    fileName);
-            return mediaUrl;
-        } catch (Exception e) {
-            throw new UnknownException("Error uploading file to S3: " + e.getMessage());
         }
     }
 
     // SHARE POST
     @Transactional
     public PostResponseDTO sharePost(ShareRequestDTO shareRequestDTO)
-            throws PostNotFoundException, UnknownException, UserAccountNotFoundException {
+            throws NotFoundException, UnknownException, UserAccountNotFoundException {
 
         Post foundPost = postRepository.getAnPost(shareRequestDTO.getPostId());
         if (foundPost == null) {
-            throw new PostNotFoundException(
+            throw new NotFoundException(
                     "Id " + shareRequestDTO.getPostId() + " not found or invalid data. Please try another!");
         }
 
@@ -234,7 +173,6 @@ public class PostService {
     }
 
     private Post buildSharedPost(Post foundPost, User foundUser, ShareRequestDTO shareRequestDTO) {
-        log.info(shareRequestDTO.getShareById() + "");
         Post sharePost = new Post();
         sharePost.setDelflag(0);
         sharePost.setContent(foundPost.getContent());
@@ -419,11 +357,11 @@ public class PostService {
 
     // GET AN POST
     public PostResponseDTO getAnPostWithPostId(Integer postId, Integer userId)
-            throws UserAccountNotFoundException, PostNotFoundException {
+            throws UserAccountNotFoundException, NotFoundException {
 
         Post foundPost = postRepository.getAnPost(postId);
         if (foundPost == null) {
-            throw new PostNotFoundException("Id " + postId + " not found. Please try another!");
+            throw new NotFoundException("Id " + postId + " not found. Please try another!");
         }
 
         User foundUser = userRepository.getAnUser(userId);
@@ -506,11 +444,11 @@ public class PostService {
     }
 
     // DELETE POST
-    public void deletePost(int post_id) throws PostNotFoundException {
+    public void deletePost(int post_id) throws NotFoundException {
         Post foundPost = postRepository.getAnPost(post_id);
 
         if (foundPost == null) {
-            throw new PostNotFoundException("Id " + post_id + " not found. Please try another!");
+            throw new NotFoundException("Id " + post_id + " not found. Please try another!");
         }
 
         List<Media> medias = mediaRepository.foundMediaByPostId(post_id);
@@ -524,10 +462,10 @@ public class PostService {
     }
 
     // Restore post
-    public void restorePost(int post_id) throws PostNotFoundException {
+    public void restorePost(int post_id) throws NotFoundException {
         Post foundPost = postRepository.getAnPostRestore(post_id);
         if (foundPost == null) {
-            throw new PostNotFoundException("Id " + post_id + " not found. Please try another!");
+            throw new NotFoundException("Id " + post_id + " not found. Please try another!");
         }
 
         List<Media> medias = mediaRepository.foundMediaByPostId(post_id);
@@ -541,7 +479,7 @@ public class PostService {
     }
 
     public Page<PostMediaDTO> searchPostWithHashtag(String keyword, Integer user_id, int page, int size)
-            throws PostNotFoundException {
+            throws NotFoundException {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Object[]> results = postRepository.searchByHashTag(keyword, user_id, pageable);
@@ -596,7 +534,7 @@ public class PostService {
     }
 
     public Page<PostMediaDTO> searchPostWithContent(Integer user_id, String keyword, int page, int size)
-            throws PostNotFoundException {
+            throws NotFoundException {
         Pageable pageable = PageRequest.of(page, size);
         Page<Object[]> results = postRepository.searchPostWithContent(keyword, user_id, pageable);
 
@@ -650,10 +588,10 @@ public class PostService {
     }
 
     // GET AN POST RETURN SAVE
-    public PostResponseDTO getAnPostReturnSave(Integer post_id) throws PostNotFoundException {
+    public PostResponseDTO getAnPostReturnSave(Integer post_id) throws NotFoundException {
         Post foundPost = postRepository.getAnPost(post_id);
         if (foundPost == null) {
-            throw new PostNotFoundException("Id " + post_id + " not found. Please try another!");
+            throw new NotFoundException("Id " + post_id + " not found. Please try another!");
         }
 
         List<Object[]> results = postRepository.getPostSave(post_id);
@@ -708,12 +646,12 @@ public class PostService {
     }
 
     public void updatePost(Integer post_id, PostRequestDTO postRequestDTO, List<MultipartFile> files)
-            throws PostNotFoundException, LocationNotFoundException, UnknownException {
+            throws NotFoundException, UnknownException {
         try {
             // Tìm bài viết
             Post foundPost = postRepository.getAnPost(post_id);
             if (foundPost == null) {
-                throw new PostNotFoundException("Id " + post_id + " not found or invalid data. Please try another!");
+                throw new NotFoundException("Id " + post_id + " not found or invalid data. Please try another!");
             }
 
             Location location = locationRepository.getAnLocation(foundPost.getLocation_id());
@@ -738,38 +676,22 @@ public class PostService {
                         continue;
                     }
 
-                    String fileName = file.getOriginalFilename();
-                    long fileSize = file.getSize();
-                    String contentType = file.getContentType();
-
-                    // Upload file lên S3
-                    try (InputStream inputStream = file.getInputStream()) {
-                        ObjectMetadata metadata = new ObjectMetadata();
-                        metadata.setContentLength(fileSize);
-                        metadata.setContentType(contentType);
-
-                        amazonS3.putObject(bucketName, fileName, inputStream, metadata);
-
-                        String mediaUrl = String.format("https://travle-be.s3.ap-southeast-2.amazonaws.com/%s",
-                                fileName);
-                        newMediaUrls.add(mediaUrl);
-
-                        String mediaType = (fileName != null && fileName.matches(".*\\.(jpg|jpeg|png|gif|webp)$"))
-                                ? "IMAGE"
-                                : "VIDEO";
-
-                        boolean mediaExists = false;
-                        for (Media existingMedia : currentMedias) {
-                            if (existingMedia.getMedia_url().equals(mediaUrl)) {
-                                mediaExists = true;
-                                break;
-                            }
+                    String mediaUrl = AppConstant.uploadFile(file);
+                    newMediaUrls.add(mediaUrl);
+                    String mediaType = (mediaUrl != null && mediaUrl.matches(".*\\.(jpg|jpeg|png|gif|webp)$"))
+                            ? "IMAGE"
+                            : "VIDEO";
+                    boolean mediaExists = false;
+                    for (Media existingMedia : currentMedias) {
+                        if (existingMedia.getMedia_url().equals(mediaUrl)) {
+                            mediaExists = true;
+                            break;
                         }
+                    }
 
-                        if (!mediaExists) {
-                            Media newMedia = new Media(null, post_id, mediaUrl, mediaType, 0);
-                            mediaRepository.save(newMedia);
-                        }
+                    if (!mediaExists) {
+                        Media newMedia = new Media(null, post_id, mediaUrl, mediaType, 0);
+                        mediaRepository.save(newMedia);
                     }
                 }
             }
@@ -784,8 +706,6 @@ public class PostService {
             if (savedPost.getId() == null) {
                 throw new UnknownException("Transaction cannot be completed!");
             }
-        } catch (IOException e) {
-            throw new UnknownException("File handling error: " + e.getMessage());
         } catch (Exception e) {
             throw new UnknownException(e.getMessage());
         }
@@ -998,5 +918,20 @@ public class PostService {
             postStatisticalDTOs.add(dto);
         }
         return postStatisticalDTOs;
+    }
+
+    public void changeStatusPost(Integer postId) throws NotFoundException, BadResquestException {
+        if (postId == null) {
+            throw new BadResquestException("Post id are required , please try again");
+        }
+        Post foundPost = postRepository.findAnPostById(postId);
+
+        if (foundPost == null) {
+            throw new NotFoundException("Found post with post id " + postId + " not found , please try again");
+        }
+
+        foundPost.setStatus("PRIVATE");
+
+        postRepository.save(foundPost);
     }
 }

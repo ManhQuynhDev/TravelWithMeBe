@@ -5,8 +5,7 @@ import java.sql.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.PostNotFoundException;
-import com.quynhlm.dev.be.core.exception.TagNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.entity.Post;
@@ -28,7 +27,7 @@ public class TagService {
     private PostRepository postRepository;
     // Add Tag
 
-    public void tagWithFriend(Tag tag) throws PostNotFoundException, UserAccountNotFoundException, UnknownException {
+    public void tagWithFriend(Tag tag) throws NotFoundException, UserAccountNotFoundException, UnknownException {
         User foundUser = userRepository.getAnUser(tag.getUserId());
         if (foundUser == null) {
             throw new UserAccountNotFoundException(
@@ -37,7 +36,7 @@ public class TagService {
 
         Post foundPost = postRepository.getAnPost(tag.getPostId());
         if (foundPost == null) {
-            throw new PostNotFoundException(
+            throw new NotFoundException(
                     "Found post with with " + tag.getUserId() + " not found, please try again!");
         }
 
@@ -49,10 +48,10 @@ public class TagService {
         }
     }
 
-    public void deleteUserFormTag(Integer id, Integer userId) throws TagNotFoundException {
+    public void deleteUserFormTag(Integer id, Integer userId) throws NotFoundException {
         Tag foundTag = tagRepository.foundTagWithIdAndUserId(id, userId);
         if (foundTag == null) {
-            throw new TagNotFoundException(
+            throw new NotFoundException(
                     "Found tag with userId " + userId + " not found, please try again!");
         }
         tagRepository.delete(foundTag);

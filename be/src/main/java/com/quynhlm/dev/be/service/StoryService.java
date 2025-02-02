@@ -1,14 +1,10 @@
 package com.quynhlm.dev.be.service;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -18,9 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.quynhlm.dev.be.core.exception.StoryNotFoundException;
+import com.quynhlm.dev.be.core.AppConstant;
+import com.quynhlm.dev.be.core.exception.BadResquestException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.dto.requestDTO.StoryRequestDTO;
@@ -39,9 +35,6 @@ import com.quynhlm.dev.be.repositories.UserRepository;
 public class StoryService {
 
     @Autowired
-    private AmazonS3 amazonS3;
-
-    @Autowired
     private FriendShipRepository friendShipRepository;
 
     @Autowired
@@ -50,25 +43,24 @@ public class StoryService {
     @Autowired
     private LocationRepository locationRepository;
 
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
-
     @Autowired
     private StoryRepository storyRepository;
 
-    public void deleteStory(int id) throws StoryNotFoundException {
+    @Transactional
+    public void deleteStory(int id) throws NotFoundException {
         Story foundStory = storyRepository.getAnStory(id);
         if (foundStory == null) {
-            throw new StoryNotFoundException("Story find by " + id + " not found. Please try another!");
+            throw new NotFoundException("Story find by " + id + " not found. Please try another!");
         }
         storyRepository.delete(foundStory);
     }
 
-    public StoryResponseDTO getAnStory(int id) throws StoryNotFoundException {
+    @Transactional
+    public StoryResponseDTO getAnStory(int id) throws NotFoundException {
 
         Story foundStory = storyRepository.getAnStory(id);
         if (foundStory == null) {
-            throw new StoryNotFoundException("Story find by " + id + " not found. Please try another!");
+            throw new NotFoundException("Story find by " + id + " not found. Please try another!");
         }
 
         List<Object[]> results = storyRepository.getAnStoryWithId(id);
@@ -107,9 +99,10 @@ public class StoryService {
         storyRepository.updateDelFlag(cutoffTime.toString());
     }
 
+    @Transactional
     public StoryResponseDTO insertStory(StoryRequestDTO storyRequestDTO, MultipartFile mediaFile,
             MultipartFile musicFile)
-            throws UnknownException, UserAccountNotFoundException {
+            throws UnknownException, BadResquestException, UserAccountNotFoundException {
         try {
 
             User foundUser = userRepository.getAnUser(storyRequestDTO.getUser_id());
@@ -136,60 +129,31 @@ public class StoryService {
             story.setStatus(storyRequestDTO.getStatus());
 
             if (mediaFile == null || mediaFile.isEmpty()) {
-                throw new UnknownException("No image or video file provided for the story.");
+                throw new BadResquestException("No image or video file provided for the story.");
             }
 
             if (musicFile != null && !musicFile.isEmpty()) {
-                String musicFileName = musicFile.getOriginalFilename();
-                long musicFileSize = musicFile.getSize();
-                String musicContentType = musicFile.getContentType();
-
-                if (!musicContentType.startsWith("audio/")) {
-                    throw new UnknownException("Invalid music file type. Only audio files are allowed.");
-                }
-
-                try (InputStream musicInputStream = musicFile.getInputStream()) {
-                    ObjectMetadata musicMetadata = new ObjectMetadata();
-                    musicMetadata.setContentLength(musicFileSize);
-                    musicMetadata.setContentType(musicContentType);
-
-                    amazonS3.putObject(bucketName, musicFileName, musicInputStream, musicMetadata);
-
-                    String musicUrl = String.format("https://travle-be.s3.ap-southeast-2.amazonaws.com/%s",
-                            musicFileName);
-                    story.setMusic_url(musicUrl);
-                }
+                String musicUrl = AppConstant.uploadFile(musicFile);
+                story.setMusic_url(musicUrl);
             }
 
-            String imageOrVideoFileName = mediaFile.getOriginalFilename();
-            long imageOrVideoFileSize = mediaFile.getSize();
             String imageOrVideoContentType = mediaFile.getContentType();
 
             if (!isValidFileType(imageOrVideoContentType)) {
-                throw new UnknownException("Invalid file type. Only image or video files are allowed.");
+                throw new BadResquestException("Invalid file type. Only image or video files are allowed.");
             }
 
-            try (InputStream imageOrVideoInputStream = mediaFile.getInputStream()) {
-                ObjectMetadata imageOrVideoMetadata = new ObjectMetadata();
-                imageOrVideoMetadata.setContentLength(imageOrVideoFileSize);
-                imageOrVideoMetadata.setContentType(imageOrVideoContentType);
+            String mediaUrl = AppConstant.uploadFile(mediaFile);
 
-                amazonS3.putObject(bucketName, imageOrVideoFileName, imageOrVideoInputStream, imageOrVideoMetadata);
+            story.setDelFlag(0);
+            story.setUrl(mediaUrl);
+            story.setCreate_time(new Timestamp(System.currentTimeMillis()).toString());
 
-                String imageOrVideoUrl = String.format("https://travle-be.s3.ap-southeast-2.amazonaws.com/%s",
-                        imageOrVideoFileName);
-                story.setDelFlag(0);
-                story.setUrl(imageOrVideoUrl);
-                story.setCreate_time(new Timestamp(System.currentTimeMillis()).toString());
-
-                Story savedStory = storyRepository.save(story);
-                if (savedStory.getId() == null) {
-                    throw new UnknownException("Transaction cannot complete!");
-                }
-                return getAnStory(savedStory.getId());
+            Story savedStory = storyRepository.save(story);
+            if (savedStory.getId() == null) {
+                throw new UnknownException("Transaction cannot complete!");
             }
-        } catch (IOException e) {
-            throw new UnknownException("File handling error: " + e.getMessage());
+            return getAnStory(savedStory.getId());
         } catch (Exception e) {
             throw new UnknownException(e.getMessage());
         }

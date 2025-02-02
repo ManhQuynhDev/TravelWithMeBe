@@ -26,12 +26,6 @@ import com.quynhlm.dev.be.repositories.MessageRepository;
 public class MessageService {
 
     @Autowired
-    private AmazonS3 amazonS3;
-
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
-
-    @Autowired
     private MessageRepository messageRepository;
 
     public void changeStatusMessage(Integer messageId) {
@@ -93,34 +87,35 @@ public class MessageService {
     }
 
     private String handleFileUpload(String fileBase64) {
-        try {
-            String[] parts = fileBase64.split(",");
-            String header = parts[0];
-            String fileData = parts[1];
+        // try {
+        //     String[] parts = fileBase64.split(",");
+        //     String header = parts[0];
+        //     String fileData = parts[1];
 
-            String fileType = header.split(";")[0].split(":")[1];
+        //     String fileType = header.split(";")[0].split(":")[1];
 
-            if (!fileType.startsWith("image/")) {
-                throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
-            }
+        //     if (!fileType.startsWith("image/")) {
+        //         throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
+        //     }
 
-            byte[] decodedBytes = Base64.getDecoder().decode(fileData);
+        //     byte[] decodedBytes = Base64.getDecoder().decode(fileData);
 
-            String fileName = UUID.randomUUID().toString() + "." + fileType.split("/")[1];
+        //     String fileName = UUID.randomUUID().toString() + "." + fileType.split("/")[1];
 
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(decodedBytes.length);
-            metadata.setContentType(fileType);
+        //     ObjectMetadata metadata = new ObjectMetadata();
+        //     metadata.setContentLength(decodedBytes.length);
+        //     metadata.setContentType(fileType);
 
-            try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
-                amazonS3.putObject(bucketName, fileName, inputStream, metadata);
-            }
-            return String.format("https://%s.s3.amazonaws.com/%s", bucketName, fileName);
-        } catch (IOException e) {
-            throw new UnknownException("Error handling Base64 file: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            throw new UnknownException("Invalid file type: " + e.getMessage());
-        }
+        //     try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
+        //         amazonS3.putObject(bucketName, fileName, inputStream, metadata);
+        //     }
+        //     return String.format("https://%s.s3.amazonaws.com/%s", bucketName, fileName);
+        // } catch (IOException e) {
+        //     throw new UnknownException("Error handling Base64 file: " + e.getMessage());
+        // } catch (IllegalArgumentException e) {
+        //     throw new UnknownException("Invalid file type: " + e.getMessage());
+        // }
+        return null;
     }
 
     public UserMessageResponseDTO getAnMessage(Integer id) {

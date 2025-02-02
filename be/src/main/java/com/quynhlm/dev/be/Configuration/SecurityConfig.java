@@ -38,6 +38,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/message/message").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/js/**", "/css/**", "/images/**").permitAll()
                                                 .requestMatchers("/ws-message/**").permitAll()
+                                                .requestMatchers("/image/**").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/web-server/**").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/assets/**").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/web-server/assets/**").permitAll()

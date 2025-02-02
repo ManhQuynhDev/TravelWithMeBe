@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.NotificationNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.model.entity.Notification;
 import com.quynhlm.dev.be.repositories.NotificationRepository;
@@ -71,18 +71,18 @@ public class NotificationService {
         return getAnLotificationWithId(saveNotification.getId());
     }
 
-    public void deleteNotification(int id) throws NotificationNotFoundException {
+    public void deleteNotification(int id) throws NotFoundException {
         Notification foundNotification = notificationRepository.findNotificationById(id);
         if (foundNotification == null) {
-            throw new NotificationNotFoundException("Found Notification with " + id + " not found please try again");
+            throw new NotFoundException("Found Notification with " + id + " not found please try again");
         }
         notificationRepository.delete(foundNotification);
     }
 
-    public void changeStatus(int id) throws NotificationNotFoundException {
+    public void changeStatus(int id) throws NotFoundException {
         Notification foundNotification = notificationRepository.findNotificationById(id);
         if (foundNotification == null) {
-            throw new NotificationNotFoundException("Found Notification with " + id + " not found please try again");
+            throw new NotFoundException("Found Notification with " + id + " not found please try again");
         }
 
         foundNotification.setStatus(true);

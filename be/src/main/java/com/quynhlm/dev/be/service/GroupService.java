@@ -1,24 +1,20 @@
 package com.quynhlm.dev.be.service;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.quynhlm.dev.be.core.exception.GroupExistingException;
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
+import com.quynhlm.dev.be.core.AppConstant;
+import com.quynhlm.dev.be.core.exception.AlreadyExistsException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.enums.GroupRole;
 import com.quynhlm.dev.be.model.dto.requestDTO.GroupRequestDTO;
@@ -38,12 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 public class GroupService {
 
     @Autowired
-    private AmazonS3 amazonS3;
-
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
-
-    @Autowired
     private GroupRepository groupRepository;
 
     @Autowired
@@ -54,7 +44,7 @@ public class GroupService {
 
     // Create group
     public Group createGroup(GroupRequestDTO groupRequestDTO, MultipartFile file)
-            throws GroupExistingException, UnknownException {
+            throws NotFoundException, UnknownException, AlreadyExistsException {
 
         try {
             Group group = new Group();
@@ -66,26 +56,13 @@ public class GroupService {
                 group.setBio(groupRequestDTO.getBio());
             }
             if (file != null && !file.isEmpty()) {
-                String fileName = file.getOriginalFilename();
-                long fileSize = file.getSize();
-                String contentType = file.getContentType();
-
-                try (InputStream inputStream = file.getInputStream()) {
-
-                    ObjectMetadata metadata = new ObjectMetadata();
-                    metadata.setContentLength(fileSize);
-                    metadata.setContentType(contentType);
-
-                    amazonS3.putObject(bucketName, fileName, inputStream, metadata);
-
-                    group.setCoverPhoto(
-                            String.format("https://travle-be.s3.ap-southeast-2.amazonaws.com/%s", fileName));
-                }
+                String mediaUrl = AppConstant.uploadFile(file);
+                group.setCoverPhoto(mediaUrl);
             }
 
             Group foundGroup = groupRepository.findGroupByName(group.getName());
             if (foundGroup != null) {
-                throw new GroupExistingException("Group name " + group.getName() + " is exits , please try other name");
+                throw new AlreadyExistsException("Group name " + group.getName() + " is exits , please try other name");
             }
             group.setCreate_time(new Timestamp(System.currentTimeMillis()).toString());
             Group saveGroup = groupRepository.save(group);
@@ -99,18 +76,16 @@ public class GroupService {
                 memberService.setAdminGroup(member);
                 return saveGroup;
             }
-        } catch (IOException e) {
-            throw new UnknownException("File handling error: " + e.getMessage());
         } catch (Exception e) {
             throw new UnknownException(e.getMessage());
         }
     }
 
-    public GroupResponseDTO getAnGroupWithId(Integer id) throws GroupNotFoundException {
+    public GroupResponseDTO getAnGroupWithId(Integer id) throws NotFoundException {
         List<Object[]> results = groupRepository.findAnGroupById(id);
 
         if (results.isEmpty()) {
-            throw new GroupNotFoundException(
+            throw new NotFoundException(
                     "Id " + id + " not found or invalid data. Please try another!");
         }
 
@@ -179,11 +154,11 @@ public class GroupService {
         });
     }
 
-    public void deleteGroup(Integer id) throws GroupNotFoundException {
+    public void deleteGroup(Integer id) throws NotFoundException {
         Group foundGroup = groupRepository.findGroupById(id);
 
         if (foundGroup == null) {
-            throw new GroupNotFoundException("Group find with " + id + " not found , please try other id");
+            throw new NotFoundException("Group find with " + id + " not found , please try other id");
         }
 
         List<Member> foundMemberGroup = memberRepository.findByGroupId(foundGroup.getId());
@@ -206,26 +181,13 @@ public class GroupService {
     public void settingGroup(Integer id, SettingsGroupDTO settingsGroupDTO, MultipartFile file) {
         Group foundGroup = groupRepository.findGroupById(id);
         if (foundGroup == null) {
-            throw new GroupNotFoundException("Group with ID " + id + " not found, please try another ID.");
+            throw new NotFoundException("Group with ID " + id + " not found, please try another ID.");
         }
 
         try {
             if (file != null && !file.isEmpty()) {
-                String fileName = file.getOriginalFilename();
-                long fileSize = file.getSize();
-                String contentType = file.getContentType();
-
-                try (InputStream inputStream = file.getInputStream()) {
-                    ObjectMetadata metadata = new ObjectMetadata();
-                    metadata.setContentLength(fileSize);
-                    metadata.setContentType(contentType);
-
-                    amazonS3.putObject(bucketName, fileName, inputStream, metadata);
-
-                    // Dynamically generate URL
-                    String fileUrl = amazonS3.getUrl(bucketName, fileName).toString();
-                    foundGroup.setCoverPhoto(fileUrl);
-                }
+                String mediaUrl = AppConstant.uploadFile(file);
+                foundGroup.setCoverPhoto(mediaUrl);
             }
 
             if (settingsGroupDTO.getName() != null && !settingsGroupDTO.getName().isEmpty()) {
@@ -244,8 +206,6 @@ public class GroupService {
                 throw new UnknownException("Transaction cannot be completed!");
             }
 
-        } catch (IOException e) {
-            throw new UnknownException("File handling error: " + e.getMessage());
         } catch (Exception e) {
             throw new UnknownException(e.getMessage());
         }

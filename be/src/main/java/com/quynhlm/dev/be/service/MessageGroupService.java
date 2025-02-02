@@ -37,12 +37,6 @@ public class MessageGroupService {
     private MemberRepository memberRepository;
 
     @Autowired
-    private AmazonS3 amazonS3;
-
-    @Value("${aws.s3.bucketName}")
-    private String bucketName;
-
-    @Autowired
     private MessageStatusRepositoty messageStatusRepositoty;
 
     public Page<UserMessageGroupResponseDTO> getAllListData(Integer groupId, int page, int size) {
@@ -87,32 +81,31 @@ public class MessageGroupService {
 
     private String handleFileUpload(String fileBase64) {
         try {
+            // Tách phần header và dữ liệu Base64
             String[] parts = fileBase64.split(",");
             String header = parts[0];
             String fileData = parts[1];
 
+            // Xác định loại file từ header
             String fileType = header.split(";")[0].split(":")[1];
 
             if (!fileType.startsWith("image/")) {
                 throw new IllegalArgumentException("Invalid file type. Only images are allowed.");
             }
 
+            // Decode dữ liệu Base64 thành byte[]
             byte[] decodedBytes = Base64.getDecoder().decode(fileData);
 
-            String fileName = UUID.randomUUID().toString() + "." + fileType.split("/")[1];
-
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(decodedBytes.length);
-            metadata.setContentType(fileType);
-
-            try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {
-                amazonS3.putObject(bucketName, fileName, inputStream, metadata);
-            }
-            return String.format("https://%s.s3.amazonaws.com/%s", bucketName, fileName);
-        } catch (IOException e) {
-            throw new UnknownException("Error handling Base64 file: " + e.getMessage());
+            // Tạo đối tượng MultipartFile
+            // return new MockMultipartFile(
+            // "file", // Tên tham số (parameter name)
+            // "uploadedFile." + fileType.split("/")[1], // Tên file (file name)
+            // fileType, // Content type (image/png, image/jpeg, ...)
+            // new ByteArrayInputStream(decodedBytes) // Dữ liệu file
+            // );
+            return "";
         } catch (IllegalArgumentException e) {
-            throw new UnknownException("Invalid file type: " + e.getMessage());
+            throw new RuntimeException("Invalid file type: " + e.getMessage());
         }
     }
 

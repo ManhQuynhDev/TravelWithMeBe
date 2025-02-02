@@ -24,6 +24,7 @@ public class ApplicationInitConfig {
                 User user = new User();
                 user.setFullname("admin");
                 user.setEmail("admin@gmail.com");
+                user.setDelflag(0);
                 HashSet<String> roles = new HashSet<>();
                 roles.add(Role.ADMIN.name());
                 user.setRoles(roles);

@@ -14,5 +14,5 @@ public class IconDTO {
         private Integer messageId;
         private String sender;
         private String receiver;
-        private String icon; 
+        private String icon;
 }

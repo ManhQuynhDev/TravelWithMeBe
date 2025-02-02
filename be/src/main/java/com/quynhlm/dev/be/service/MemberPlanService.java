@@ -10,12 +10,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.GroupNotFoundException;
-import com.quynhlm.dev.be.core.exception.MemberNotFoundException;
-import com.quynhlm.dev.be.core.exception.TravelPlanNotFoundException;
+import com.quynhlm.dev.be.core.exception.BadResquestException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
-import com.quynhlm.dev.be.core.exception.UserWasAlreadyRequest;
 import com.quynhlm.dev.be.enums.Role;
 import com.quynhlm.dev.be.model.dto.responseDTO.MemberPlanResponseDTO;
 import com.quynhlm.dev.be.model.entity.MemberPlan;
@@ -40,7 +38,7 @@ public class MemberPlanService {
     private UserRepository userRepository;
 
     public MemberPlan requestToJoinPlan(MemberPlan member)
-            throws GroupNotFoundException, MemberNotFoundException, UserAccountNotFoundException,
+            throws NotFoundException, UserAccountNotFoundException,
             UnknownException {
 
         member.setJoin_time(new Timestamp(System.currentTimeMillis()).toString());
@@ -48,7 +46,7 @@ public class MemberPlanService {
         member.setDelflag(0);
 
         if (!travelPlanRepository.existsById(member.getPlanId())) {
-            throw new GroupNotFoundException("Plan with ID " + member.getPlanId() + " not found.");
+            throw new NotFoundException("Plan with ID " + member.getPlanId() + " not found.");
         }
 
         if (!userRepository.existsById(member.getUserId())) {
@@ -65,26 +63,26 @@ public class MemberPlanService {
         return saveMember;
     }
 
-    public void deleteMemberPlan(Integer memberId, Integer planId) throws MemberNotFoundException {
+    public void deleteMemberPlan(Integer memberId, Integer planId) throws NotFoundException {
         log.info("Member Id " + memberId + " " + "Plan id " + planId);
         MemberPlan foundMember = memberPlanRepository.findMemberById(memberId, planId);
         if (foundMember == null) {
-            throw new MemberNotFoundException("Found user not found please try again");
+            throw new NotFoundException("Found user not found please try again");
         }
         foundMember.setDelflag(1);
         memberPlanRepository.save(foundMember);
     }
 
     public void setAdminPlan(MemberPlan member)
-            throws TravelPlanNotFoundException, UserAccountNotFoundException,
-            UnknownException, UserWasAlreadyRequest {
+            throws  UserAccountNotFoundException,
+            UnknownException, BadResquestException , NotFoundException{
 
         member.setJoin_time(new Timestamp(System.currentTimeMillis()).toString());
 
         member.setRole(Role.ADMIN.name());
 
         if (!travelPlanRepository.existsById(member.getPlanId())) {
-            throw new GroupNotFoundException("Plan with ID " + member.getPlanId() + " not found.");
+            throw new NotFoundException("Plan with ID " + member.getPlanId() + " not found.");
         }
 
         if (!userRepository.existsById(member.getUserId())) {
@@ -95,7 +93,7 @@ public class MemberPlanService {
                 member.getUserId(), member.getPlanId(), Arrays.asList("PENDING", "APPROVED"));
 
         if (existingMember.isPresent()) {
-            throw new UserWasAlreadyRequest("User has already requested to join or is already a member.");
+            throw new BadResquestException("User has already requested to join or is already a member.");
         }
 
         member.setStatus("APPROVED");
@@ -107,10 +105,10 @@ public class MemberPlanService {
     }
 
     public Page<MemberPlanResponseDTO> getRequestToJoinPlans(Integer planId, int page, int size)
-            throws TravelPlanNotFoundException {
+            throws NotFoundException {
         Travel_Plan foundPlan = travelPlanRepository.getAnTravel_Plan(planId);
         if (foundPlan == null) {
-            throw new TravelPlanNotFoundException(
+            throw new NotFoundException(
                     "Found member with planId " + planId + " not found , please try again");
         }
         Pageable pageable = PageRequest.of(page, size);
@@ -132,7 +130,7 @@ public class MemberPlanService {
 
     // Update status user join plan
     public void updateMemberStatus(int planId, int memberSendRequestId, int managerId, String action)
-            throws TravelPlanNotFoundException, UserAccountNotFoundException, UnknownException {
+            throws NotFoundException, UserAccountNotFoundException, UnknownException {
 
         MemberPlan memberManager = memberPlanRepository.findById(managerId) // Find quyền user
                 .orElseThrow(() -> new UserAccountNotFoundException("Member not found"));
@@ -146,7 +144,7 @@ public class MemberPlanService {
 
         Travel_Plan travel_Plan = travelPlanRepository.getAnTravel_Plan(planId);
         if (travel_Plan == null) {
-            throw new TravelPlanNotFoundException("Found travel with " + planId + " not found , please try again");
+            throw new NotFoundException("Found travel with " + planId + " not found , please try again");
         }
 
         if (memberSendRequest.getPlanId() != planId) {

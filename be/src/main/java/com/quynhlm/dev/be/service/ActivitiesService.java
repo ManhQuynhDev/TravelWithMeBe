@@ -9,9 +9,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.quynhlm.dev.be.core.exception.ActivitiesExistingException;
-import com.quynhlm.dev.be.core.exception.ActivitiesNotFoundException;
-import com.quynhlm.dev.be.core.exception.TravelPlanNotFoundException;
+import com.quynhlm.dev.be.core.exception.AlreadyExistsException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.dto.responseDTO.ActivityResponseDTO;
@@ -39,7 +38,7 @@ public class ActivitiesService {
 
     // Create activity
     public Activities createActivities(Activities activities)
-            throws ActivitiesExistingException, TravelPlanNotFoundException,
+            throws NotFoundException,AlreadyExistsException,
             UserAccountNotFoundException, UnknownException {// Status
         // 1 : 0
         User foundUser = userRepository.getAnUser(activities.getUser_id());
@@ -49,7 +48,7 @@ public class ActivitiesService {
 
         Travel_Plan foundPlan = travelPlanRepository.getAnTravel_Plan(activities.getPlanId());
         if (foundPlan == null) {
-            throw new TravelPlanNotFoundException("Found group with id not found please try again");
+            throw new NotFoundException("Found group with id not found please try again");
         }
         activities.setCreate_time(new Timestamp(System.currentTimeMillis()).toString());
         activities.setDelflag(0);
@@ -60,25 +59,25 @@ public class ActivitiesService {
         return saveActivity;
     }
 
-    public void deleteActivities(int id) throws ActivitiesNotFoundException {
+    public void deleteActivities(int id) throws NotFoundException {
         Activities foundActivity = activitiesRepository.findActivities(id);
         if (foundActivity == null) {
-            throw new ActivitiesNotFoundException("Activity with id " + id + " not found. Please try another!");
+            throw new NotFoundException("Activity with id " + id + " not found. Please try another!");
         }
         foundActivity.setDelflag(1);
         activitiesRepository.save(foundActivity);
     }
 
-    public ActivityResponseDTO getAnActivity(int id) throws ActivitiesNotFoundException {
+    public ActivityResponseDTO getAnActivity(int id) throws NotFoundException {
         Activities foundActivity = activitiesRepository.findActivities(id);
         if (foundActivity == null) {
-            throw new ActivitiesNotFoundException("Activity with id " + id + " not found. Please try another!");
+            throw new NotFoundException("Activity with id " + id + " not found. Please try another!");
         }
 
         List<Object[]> results = activitiesRepository.findActivitiesWithId(id);
 
         if (results.isEmpty()) {
-            throw new ActivitiesNotFoundException(
+            throw new NotFoundException(
                     "Id " + id + " not found or invalid data. Please try another!");
         }
 
@@ -101,18 +100,18 @@ public class ActivitiesService {
     }
 
     public void updateActivities(int id, Activities activities)
-            throws ActivitiesNotFoundException, ActivitiesExistingException, UnknownException {
+            throws NotFoundException, AlreadyExistsException, UnknownException {
 
         Activities foundActivity = activitiesRepository.findActivities(id);
         if (foundActivity == null) {
-            throw new ActivitiesNotFoundException("Activity with id " + id + " not found. Please try another!");
+            throw new NotFoundException("Activity with id " + id + " not found. Please try another!");
         }
 
         Activities isExits = activitiesRepository.findByNameAndPlanId(activities.getName(),
                 activities.getPlanId());
 
         if (isExits != null) {
-            throw new ActivitiesExistingException(
+            throw new AlreadyExistsException(
                     "Activity with name " + activities.getName() + " already exist !. Please try another!");
         }
 
@@ -142,11 +141,11 @@ public class ActivitiesService {
     }
 
     // Get all data with planid
-    public Page<Activities> getActivitiesWithPlanId(int planId, int page, int size) throws TravelPlanNotFoundException {
+    public Page<Activities> getActivitiesWithPlanId(int planId, int page, int size) throws NotFoundException {
 
         Travel_Plan foundPlan = travelPlanRepository.getAnTravel_Plan(planId);
         if (foundPlan == null) {
-            throw new TravelPlanNotFoundException("Plan with id  " + planId + " not found please try again");
+            throw new NotFoundException("Plan with id  " + planId + " not found please try again");
         }
 
         Pageable pageable = PageRequest.of(page, size);

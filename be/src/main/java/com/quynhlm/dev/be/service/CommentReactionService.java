@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Timestamp;
 import java.util.List;
 
-import com.quynhlm.dev.be.core.exception.CommentNotFoundException;
+import com.quynhlm.dev.be.core.exception.NotFoundException;
 import com.quynhlm.dev.be.core.exception.UnknownException;
 import com.quynhlm.dev.be.core.exception.UserAccountNotFoundException;
 import com.quynhlm.dev.be.model.dto.responseDTO.ReactionStatisticsDTO;
@@ -35,12 +35,12 @@ public class CommentReactionService {
     private UserRepository userRepository;
 
     public void updateReaction(CommentReaction commentReaction)
-            throws CommentNotFoundException, UserAccountNotFoundException, UnknownException {
+            throws NotFoundException, UserAccountNotFoundException, UnknownException {
 
         Comment foundComment = commentRepository.findComment(commentReaction.getCommentId());
 
         if (foundComment == null) {
-            throw new CommentNotFoundException(
+            throw new NotFoundException(
                     "Comment find with id " + commentReaction.getCommentId() + " not found. Please try another!");
         }
 
@@ -93,11 +93,11 @@ public class CommentReactionService {
         });
     }
 
-    public ReactionStatisticsDTO getReactionTypeCount(Integer commnet_id) throws CommentNotFoundException {
+    public ReactionStatisticsDTO getReactionTypeCount(Integer commnet_id) throws NotFoundException {
         List<Object[]> results = commentReactionRepository.reactionTypeCount(commnet_id);
 
         if (results.isEmpty()) {
-            throw new CommentNotFoundException(
+            throw new NotFoundException(
                     "Id " + commnet_id + " not found or invalid data. Please try another!");
         }
 
